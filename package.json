@@ -1,0 +1,15 @@
+{
+  "name": "webrtc-debugger",
+  "version": "1.0.0",
+  "description": "WebRTC Debug Thing",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Ben Lewis",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^5.1.0",
+    "ws": "^8.18.2"
+  }
+}

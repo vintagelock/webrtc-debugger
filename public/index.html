@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Advanced WebRTC Debugger</title>
+  <style>
+    :root {
+      --bg-primary: #1a1a1a;
+      --bg-secondary: #252525;
+      --bg-tertiary: #2d2d2d;
+      --bg-quaternary: #333333;
+      --text-primary: #e0e0e0;
+      --text-secondary: #b0b0b0;
+      --accent: #4d84ff;
+      --accent-hover: #659bff;
+      --accent-muted: rgba(77, 132, 255, 0.2);
+      --success: #4caf50;
+      --error: #f44336;
+      --warning: #ff9800;
+      --info: #2196f3;
+      --border: #3a3a3a;
+      --shadow: rgba(0, 0, 0, 0.2);
+    }
+    
+    .light-theme {
+      --bg-primary: #f5f5f5;
+      --bg-secondary: #e8e8e8;
+      --bg-tertiary: #ffffff;
+      --bg-quaternary: #f0f0f0;
+      --text-primary: #333333;
+      --text-secondary: #666666;
+      --accent: #1a73e8;
+      --accent-hover: #1557b0;
+      --accent-muted: rgba(26, 115, 232, 0.1);
+      --success: #0f9d58;
+      --error: #d93025;
+      --warning: #f29900;
+      --info: #1a73e8;
+      --border: #dadce0;
+      --shadow: rgba(0, 0, 0, 0.1);
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'Segoe UI', 'Roboto', sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      transition: all 0.3s ease;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    header {
+      background-color: var(--bg-secondary);
+      padding: 0.5rem 1rem;
+      box-shadow: 0 2px 4px var(--shadow);
+      z-index: 100;
+    }
+    
+    .header-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .title {
+      font-weight: 400;
+      font-size: 1.2rem;
+      color: var(--accent);
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .logo {
+      font-size: 1.5rem;
+      color: var(--accent);
+    }
+    
+    .actions {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+    
+    .theme-toggle {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.25rem;
+      border-radius: 50%;
+      transition: background-color 0.2s;
+    }
+    
+    .theme-toggle:hover {
+      background-color: var(--bg-tertiary);
+    }
+    
+    .status-bar {
+      background-color: var(--bg-secondary);
+      padding: 0.25rem 1rem;
+      font-size: 0.85rem;
+    }
+    
+    .status-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+    }
+    
+    .indicators {
+      display: flex;
+      gap: 1rem;
+    }
+    
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    
+    .status-dot {
+      height: 8px;
+      width: 8px;
+      border-radius: 50%;
+      background-color: #555;
+    }
+    
+    .status-dot.connected {
+      background-color: var(--success);
+      box-shadow: 0 0 5px var(--success);
+    }
+    
+    .stats {
+      color: var(--text-secondary);
+      display: flex;
+      gap: 1rem;
+    }
+    
+    main {
+      flex: 1;
+      padding: 1rem;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    
+    .panel {
+      background-color: var(--bg-secondary);
+      border-radius: 6px;
+      box-shadow: 0 2px 4px var(--shadow);
+      overflow: hidden;
+    }
+    
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 1rem;
+      background-color: var(--bg-quaternary);
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .panel-title {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .panel-controls {
+      display: flex;
+      gap: 0.5rem;
+    }
+    
+    .panel-button {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 0.9rem;
+      padding: 0.25rem;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+    }
+    
+    .panel-button:hover {
+      background-color: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+    
+    .panel-content {
+      padding: 1rem;
+    }
+    
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .tab {
+      padding: 0.5rem 1rem;
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+      border-bottom: 2px solid transparent;
+    }
+    
+    .tab.active {
+      color: var(--accent);
+      border-bottom: 2px solid var(--accent);
+    }
+    
+    .tab:hover:not(.active) {
+      color: var(--text-primary);
+      background-color: var(--bg-tertiary);
+    }
+    
+    .tab-content {
+      padding: 1rem;
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    .grid {
+      display: grid;
+      gap: 1rem;
+    }
+    
+    .grid-2 {
+      grid-template-columns: 1fr 1fr;
+    }
+    
+    .grid-3 {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+    
+    @media (max-width: 1200px) {
+      .grid-3 {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    
+    @media (max-width: 800px) {
+      .grid-2, .grid-3 {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .log-container {
+      height: 300px;
+      overflow-y: auto;
+      background-color: var(--bg-tertiary);
+      border-radius: 4px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 0.85rem;
+      padding: 0.5rem;
+    }
+    
+    .log-content {
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+    }
+    
+    .log-entry {
+      padding: 0.25rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .log-entry:last-child {
+      border-bottom: none;
+    }
+    
+    .log-timestamp {
+      color: var(--text-secondary);
+      font-size: 0.75rem;
+      margin-right: 0.5rem;
+    }
+    
+    .log-message {
+      word-break: break-word;
+    }
+    
+    .log-type {
+      display: inline-block;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      margin-right: 0.5rem;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      font-weight: bold;
+    }
+    
+    .type-info {
+      background-color: var(--info);
+      color: white;
+    }
+    
+    .type-success {
+      background-color: var(--success);
+      color: white;
+    }
+    
+    .type-warning {
+      background-color: var(--warning);
+      color: black;
+    }
+    
+    .type-error {
+      background-color: var(--error);
+      color: white;
+    }
+    
+    .form-control {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    
+    .message-input {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      background-color: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 0.9rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    
+    .message-input:focus {
+      border-color: var(--accent);
+      outline: none;
+      box-shadow: 0 0 0 2px var(--accent-muted);
+    }
+    
+    .btn {
+      padding: 0.75rem 1.5rem;
+      background-color: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s, transform 0.1s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    
+    .btn:hover {
+      background-color: var(--accent-hover);
+    }
+    
+    .btn:active {
+      transform: translateY(1px);
+    }
+    
+    .btn-sm {
+      padding: 0.5rem 1rem;
+      font-size: 0.85rem;
+    }
+    
+    .btn-outline {
+      background-color: transparent;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+    }
+    
+    .btn-outline:hover {
+      background-color: var(--accent-muted);
+    }
+    
+    .chart-container {
+      height: 200px;
+      width: 100%;
+      position: relative;
+    }
+    
+    canvas {
+      background-color: var(--bg-tertiary);
+      border-radius: 4px;
+    }
+    
+    .file-drop {
+      border: 2px dashed var(--border);
+      border-radius: 4px;
+      padding: 1.5rem;
+      text-align: center;
+      color: var(--text-secondary);
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    
+    .file-drop:hover, .file-drop.dragging {
+      border-color: var(--accent);
+      background-color: var(--accent-muted);
+      color: var(--accent);
+    }
+    
+    .drop-icon {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .template-btn {
+      display: inline-block;
+      margin-right: 0.5rem;
+      margin-bottom: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      background-color: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 0.85rem;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .template-btn:hover {
+      background-color: var(--accent-muted);
+      border-color: var(--accent);
+    }
+    
+    .badge {
+      display: inline-block;
+      padding: 0.15rem 0.5rem;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      background-color: var(--bg-quaternary);
+      color: var(--text-secondary);
+      margin-left: 0.5rem;
+    }
+    
+    .badge-primary {
+      background-color: var(--accent-muted);
+      color: var(--accent);
+    }
+    
+    .no-events {
+      color: var(--text-secondary);
+      font-style: italic;
+      text-align: center;
+      margin: 2rem 0;
+    }
+    
+    .timeline {
+      position: relative;
+      padding-left: 1.5rem;
+      margin-top: 1rem;
+    }
+    
+    .timeline::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 5px;
+      width: 2px;
+      background-color: var(--border);
+    }
+    
+    .timeline-event {
+      position: relative;
+      margin-bottom: 1rem;
+    }
+    
+    .timeline-event::before {
+      content: '';
+      position: absolute;
+      left: -1.5rem;
+      top: 0.35rem;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background-color: var(--bg-quaternary);
+      border: 2px solid var(--border);
+    }
+    
+    .timeline-event.success::before {
+      background-color: var(--success);
+      border-color: var(--success);
+    }
+    
+    .timeline-event.warning::before {
+      background-color: var(--warning);
+      border-color: var(--warning);
+    }
+    
+    .timeline-event.error::before {
+      background-color: var(--error);
+      border-color: var(--error);
+    }
+    
+    .timeline-event.info::before {
+      background-color: var(--info);
+      border-color: var(--info);
+    }
+    
+    .timeline-time {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+    
+    .timeline-title {
+      font-weight: 500;
+      margin-bottom: 0.25rem;
+    }
+    
+    .timeline-details {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+    
+    .message-queue-badge {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      background-color: var(--error);
+      color: white;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: bold;
+    }
+    
+    .message-inspector-content {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .message-detail {
+      margin-bottom: 0.5rem;
+      padding: 0.5rem;
+      background-color: var(--bg-tertiary);
+      border-radius: 4px;
+    }
+    
+    .message-detail-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.25rem;
+    }
+    
+    .message-detail-type {
+      font-weight: 500;
+    }
+    
+    .message-detail-time {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+    
+    .message-detail-size {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+    
+    .message-detail-content {
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 0.85rem;
+      padding: 0.5rem;
+      background-color: var(--bg-quaternary);
+      border-radius: 4px;
+      word-break: break-all;
+      white-space: pre-wrap;
+    }
+    
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 0.25rem;
+      font-size: 0.9rem;
+    }
+    
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 0.5rem;
+      background-color: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 0.9rem;
+    }
+    
+    .form-group input:focus,
+    .form-group select:focus {
+      border-color: var(--accent);
+      outline: none;
+      box-shadow: 0 0 0 2px var(--accent-muted);
+    }
+    
+    .console-input {
+      position: relative;
+    }
+    
+    .console-prefix {
+      position: absolute;
+      left: 1rem;
+      top: 0.75rem;
+      color: var(--accent);
+      font-family: 'Consolas', 'Monaco', monospace;
+    }
+    
+    .console-command {
+      padding-left: 2rem !important;
+      font-family: 'Consolas', 'Monaco', monospace;
+    }
+    
+    /* Tooltip */
+    .tooltip {
+      position: relative;
+    }
+    
+    .tooltip:hover::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 0.5rem;
+      background-color: var(--bg-tertiary);
+      color: var(--text-primary);
+      border-radius: 4px;
+      font-size: 0.8rem;
+      white-space: nowrap;
+      z-index: 100;
+      box-shadow: 0 2px 4px var(--shadow);
+    }
+    
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    .fade-in {
+      animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+    
+    .pulse {
+      animation: pulse 1s infinite;
+    }
+    
+    /* Utils */
+    .mt-1 { margin-top: 0.25rem; }
+    .mt-2 { margin-top: 0.5rem; }
+    .mt-3 { margin-top: 1rem; }
+    .mt-4 { margin-top: 1.5rem; }
+    .mb-1 { margin-bottom: 0.25rem; }
+    .mb-2 { margin-bottom: 0.5rem; }
+    .mb-3 { margin-bottom: 1rem; }
+    .mb-4 { margin-bottom: 1.5rem; }
+    .ml-1 { margin-left: 0.25rem; }
+    .ml-2 { margin-left: 0.5rem; }
+    .ml-3 { margin-left: 1rem; }
+    .ml-4 { margin-left: 1.5rem; }
+    .text-success { color: var(--success); }
+    .text-warning { color: var(--warning); }
+    .text-error { color: var(--error); }
+    .text-info { color: var(--info); }
+    .text-accent { color: var(--accent); }
+    .text-secondary { color: var(--text-secondary); }
+    .d-flex { display: flex; }
+    .align-center { align-items: center; }
+    .justify-between { justify-content: space-between; }
+    .gap-1 { gap: 0.25rem; }
+    .gap-2 { gap: 0.5rem; }
+    .gap-3 { gap: 1rem; }
+    .gap-4 { gap: 1.5rem; }
+    .flex-1 { flex: 1; }
+    .text-center { text-align: center; }
+    .font-mono { font-family: 'Consolas', 'Monaco', monospace; }
+    .text-sm { font-size: 0.85rem; }
+    .text-xs { font-size: 0.75rem; }
+    .font-bold { font-weight: bold; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <h1 class="title">
+        <span class="logo">📡</span>
+        Bens WebRTC Debugger
+      </h1>
+      <div class="actions">
+        <button id="connectionBtn" class="btn btn-sm">
+          <span id="connectionBtnIcon">🔄</span>
+          <span id="connectionBtnText">Connect</span>
+        </button>
+        <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme">
+          <span id="themeIcon">🌙</span>
+        </button>
+      </div>
+    </div>
+  </header>
+  
+  <div class="status-bar">
+    <div class="status-content">
+      <div class="indicators">
+        <div class="status-indicator">
+          <div id="wsStatus" class="status-dot"></div>
+          <span>WebSocket</span>
+        </div>
+        <div class="status-indicator">
+          <div id="peerStatus" class="status-dot"></div>
+          <span>Peer Connection</span>
+        </div>
+        <div class="status-indicator">
+          <div id="channelStatus" class="status-dot"></div>
+          <span>Data Channel</span>
+        </div>
+      </div>
+      <div class="stats">
+        <div id="bytesReceived">Received: 0 B</div>
+        <div id="bytesSent">Sent: 0 B</div>
+        <div id="rtt">RTT: -- ms</div>
+      </div>
+    </div>
+  </div>
+  
+  <main>
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">
+          <span>Communication</span>
+          <div id="queueBadge" class="badge hidden">0</div>
+        </div>
+        <div class="panel-controls">
+          <button id="clearLogBtn" class="panel-button" data-tooltip="Clear log">🗑️</button>
+          <button id="exportLogBtn" class="panel-button" data-tooltip="Export log">💾</button>
+        </div>
+      </div>
+      <div class="tabs">
+        <button class="tab active" data-tab="messaging">Messaging</button>
+        <button class="tab" data-tab="file-transfer">File Transfer</button>
+        <button class="tab" data-tab="templates">Templates</button>
+        <button class="tab" data-tab="console">Console</button>
+      </div>
+      <div id="messaging" class="tab-content active">
+        <div class="form-control">
+          <input type="text" id="messageInput" class="message-input" placeholder="Type a message..." />
+          <button id="sendBtn" class="btn">Send</button>
+        </div>
+        <div id="logContainer" class="log-container">
+          <div id="logContent" class="log-content"></div>
+        </div>
+      </div>
+      <div id="file-transfer" class="tab-content">
+        <div id="fileDrop" class="file-drop mb-3">
+          <div class="drop-icon">📁</div>
+          <p>Drag and drop files here or click to select</p>
+          <input type="file" id="fileInput" class="hidden" />
+        </div>
+        <div class="d-flex align-center gap-2 mb-3">
+          <div class="flex-1">
+            <div id="fileProgress" style="height: 8px; width: 0%; background-color: var(--accent); border-radius: 4px; transition: width 0.3s;"></div>
+          </div>
+          <span id="fileStatus" class="text-secondary text-sm"></span>
+        </div>
+        <h3 class="mb-2">Transferred Files</h3>
+        <div id="fileList" class="log-container">
+          <div class="no-events">No files transferred yet</div>
+        </div>
+      </div>
+      <div id="templates" class="tab-content">
+        <h3 class="mb-2">Message Templates</h3>
+        <div class="mb-3">
+          <button class="template-btn" data-template="ping">Ping Test</button>
+          <button class="template-btn" data-template="echo">Echo Request</button>
+          <button class="template-btn" data-template="large">Large JSON</button>
+          <button class="template-btn" data-template="stress">Stress Test</button>
+          <button class="template-btn" data-template="binary">Binary Data</button>
+        </div>
+        <div class="form-group">
+          <label for="templateEditor">Edit Template</label>
+          <textarea id="templateEditor" class="message-input" style="min-height: 150px;"></textarea>
+        </div>
+        <button id="sendTemplateBtn" class="btn">Send Template</button>
+      </div>
+      <div id="console" class="tab-content">
+        <div class="console-input mb-3">
+          <span class="console-prefix">></span>
+          <input type="text" id="consoleInput" class="message-input console-command" placeholder="Type a command..." />
+        </div>
+        <div class="mb-2 text-sm text-secondary">
+          Available commands: /stats, /reconnect, /create-channel, /close-channel, /debug, /help
+        </div>
+        <div id="consoleOutput" class="log-container">
+          <div class="log-entry">
+            <span class="log-timestamp">System</span>
+            <span class="log-message">WebRTC Console ready. Type /help for available commands.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="grid grid-2">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>Network Statistics</span>
+          </div>
+          <div class="panel-controls">
+            <button id="pauseStatsBtn" class="panel-button" data-tooltip="Pause">⏸️</button>
+          </div>
+        </div>
+        <div class="panel-content">
+          <div class="chart-container">
+            <canvas id="bandwidthChart"></canvas>
+          </div>
+        </div>
+      </div>
+      
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>Message Size</span>
+          </div>
+          <div class="panel-controls">
+            <button id="pauseSizeBtn" class="panel-button" data-tooltip="Pause">⏸️</button>
+          </div>
+        </div>
+        <div class="panel-content">
+          <div class="chart-container">
+            <canvas id="messageSizeChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="grid grid-2">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>Connection Timeline</span>
+          </div>
+          <div class="panel-controls">
+            <button id="clearTimelineBtn" class="panel-button" data-tooltip="Clear timeline">🗑️</button>
+          </div>
+        </div>
+        <div class="panel-content">
+          <div id="timeline" class="timeline">
+            <div class="no-events">No connection events yet</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>Message Inspector</span>
+          </div>
+          <div class="panel-controls">
+            <button id="clearInspectorBtn" class="panel-button" data-tooltip="Clear">🗑️</button>
+          </div>
+        </div>
+        <div class="panel-content">
+          <div id="messageInspector" class="message-inspector-content">
+            <div class="no-events">No messages to inspect</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">
+          <span>Configuration</span>
+        </div>
+        <div class="panel-controls">
+          <button id="saveConfigBtn" class="panel-button" data-tooltip="Save configuration">💾</button>
+          <button id="loadConfigBtn" class="panel-button" data-tooltip="Load configuration">📂</button>
+        </div>
+      </div>
+      <div class="tabs">
+        <button class="tab active" data-tab="ice-config">ICE Servers</button>
+        <button class="tab" data-tab="data-channels">Data Channels</button>
+        <button class="tab" data-tab="signaling">Signaling</button>
+      </div>
+      <div id="ice-config" class="tab-content active">
+        <div class="mb-3">
+          <div class="d-flex justify-between align-center mb-2">
+            <h3>ICE Servers</h3>
+            <button id="addIceServerBtn" class="btn btn-sm">Add Server</button>
+          </div>
+          <div id="iceServersList">
+            <div class="form-group">
+              <div class="d-flex gap-2 align-center">
+                <div class="flex-1">
+                  <label>URL</label>
+                  <input type="text" class="ice-url" value="stun:192.168.3.53:3478" />
+                </div>
+                <div class="flex-1">
+                  <label>Username</label>
+                  <input type="text" class="ice-username" />
+                </div>
+                <div class="flex-1">
+                  <label>Credential</label>
+                  <input type="text" class="ice-credential" />
+                </div>
+                <button class="panel-button remove-ice" data-tooltip="Remove">❌</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="d-flex gap-2 align-center">
+                <div class="flex-1">
+                  <label>URL</label>
+                  <input type="text" class="ice-url" value="turn:192.168.3.53:3478" />
+                </div>
+                <div class="flex-1">
+                  <label>Username</label>
+                  <input type="text" class="ice-username" value="test" />
+                </div>
+                <div class="flex-1">
+                  <label>Credential</label>
+                  <input type="text" class="ice-credential" value="test123" />
+                </div>
+                <button class="panel-button remove-ice" data-tooltip="Remove">❌</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button id="applyIceConfigBtn" class="btn">Apply Configuration</button>
+      </div>
+      <div id="data-channels" class="tab-content">
+        <div class="mb-3">
+          <div class="d-flex justify-between align-center mb-2">
+            <h3>Data Channels</h3>
+            <button id="createChannelBtn" class="btn btn-sm">Create Channel</button>
+          </div>
+          <div id="channelsList">
+            <div class="no-events">Default data channel will be created on connection</div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="channelName">Channel Name</label>
+          <input type="text" id="channelName" value="chat" />
+        </div>
+        <div class="d-flex gap-2">
+          <div class="form-group flex-1">
+            <label for="channelOrdered">Ordered</label>
+            <select id="channelOrdered">
+              <option value="true">Yes</option>
+              <option value="false">No</option>
+            </select>
+          </div>
+          <div class="form-group flex-1">
+            <label for="channelMaxRetransmits">Max Retransmits</label>
+            <input type="number" id="channelMaxRetransmits" value="" placeholder="Optional" />
+          </div>
+        </div>
+      </div>
+      <div id="signaling" class="tab-content">
+        <div class="form-group">
+          <label for="signalingUrl">WebSocket URL</label>
+          <input type="text" id="signalingUrl" value="" placeholder="ws://localhost:8080" />
+        </div>
+        <div class="form-group">
+          <label for="signalingProtocol">Signaling Protocol</label>
+          <select id="signalingProtocol">
+            <option value="json">JSON</option>
+            <option value="binary">Binary</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="autoReconnect">Auto Reconnect</label>
+          <select id="autoReconnect">
+            <option value="true">Enabled</option>
+            <option value="false">Disabled</option>
+          </select>
+        </div>
+        <button id="applySignalingBtn" class="btn">Apply Configuration</button>
+      </div>
+    </div>
+  </main>
+  
+  <!-- Templates for dynamic content -->
+  <template id="iceServerTemplate">
+    <div class="form-group">
+      <div class="d-flex gap-2 align-center">
+        <div class="flex-1">
+          <label>URL</label>
+          <input type="text" class="ice-url" value="" />
+        </div>
+        <div class="flex-1">
+          <label>Username</label>
+          <input type="text" class="ice-username" />
+        </div>
+        <div class="flex-1">
+          <label>Credential</label>
+          <input type="text" class="ice-credential" />
+        </div>
+        <button class="panel-button remove-ice" data-tooltip="Remove">❌</button>
+      </div>
+    </div>
+  </template>
+  
+  <template id="logEntryTemplate">
+    <div class="log-entry fade-in">
+      <span class="log-timestamp"></span>
+      <span class="log-type"></span>
+      <span class="log-message"></span>
+    </div>
+  </template>
+  
+  <template id="timelineEventTemplate">
+    <div class="timeline-event fade-in">
+      <div class="timeline-time"></div>
+      <div class="timeline-title"></div>
+      <div class="timeline-details"></div>
+    </div>
+  </template>
+  
+  <template id="messageDetailTemplate">
+    <div class="message-detail fade-in">
+      <div class="message-detail-header">
+        <span class="message-detail-type"></span>
+        <span class="message-detail-time"></span>
+      </div>
+      <div class="message-detail-size"></div>
+      <pre class="message-detail-content"></pre>
+    </div>
+  </template>
+  
+  <template id="channelItemTemplate">
+    <div class="form-group">
+      <div class="d-flex gap-2 align-center">
+        <div class="flex-1">
+          <label class="channel-name"></label>
+          <div class="d-flex gap-2 align-center">
+            <div class="status-dot channel-status"></div>
+            <span class="channel-state"></span>
+          </div>
+        </div>
+        <div class="text-secondary text-sm">
+          <div>Ordered: <span class="channel-ordered"></span></div>
+          <div>Max Retransmits: <span class="channel-retransmits"></span></div>
+        </div>
+        <button class="btn btn-sm btn-outline channel-action"></button>
+      </div>
+    </div>
+  </template>
+  
+  <template id="fileItemTemplate">
+    <div class="log-entry fade-in">
+      <div class="d-flex justify-between align-center">
+        <div>
+          <div class="font-bold"></div>
+          <div class="text-sm text-secondary"></div>
+        </div>
+        <button class="btn btn-sm"></button>
+      </div>
+    </div>
+  </template>
+  
+  <!-- Import Chart.js and our custom scripts -->
+  <script src="chart.js"></script>
+  <script src="webrtc-debugger.js"></script>
+</body>
+</html>
