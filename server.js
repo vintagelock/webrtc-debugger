@@ -10,7 +10,7 @@ let peers = [];
 
 wss.on('connection', (ws) => {
   peers.push(ws);
-  console.log("New WebSocket connection");
+  console.log('New WebSocket connection');
 
   ws.on('message', (msg) => {
     // Relay to all other peers
@@ -22,13 +22,13 @@ wss.on('connection', (ws) => {
   });
 
   ws.on('close', () => {
-    peers = peers.filter(p => p !== ws);
-    console.log("WebSocket connection closed");
+    peers = peers.filter((p) => p !== ws);
+    console.log('WebSocket connection closed');
   });
 });
 
 app.use(express.static('public'));
 
 server.listen(3000, () => {
-  console.log("WebRTC test server running at http://localhost:3000");
+  console.log('WebRTC test server running at http://localhost:3000');
 });

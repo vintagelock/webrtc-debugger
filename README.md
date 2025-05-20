@@ -1,5 +1,5 @@
 # webrtc-debugger
 
-Needed a thing.... wrote a thing 
+Needed a thing.... wrote a thing
 
 Enjoy
